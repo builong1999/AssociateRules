@@ -39,6 +39,8 @@ private:
 	vector<int> getIndex(vector<int> row);
 	void generateCParallel1(int start, int loop, int Lsize, vector<vector<int>> &temp );
 	void generateCParallel2(int start, int loop, set<vector<int>> LSet, vector<vector<int>> &temps, vector<vector<int>> temp);
+	void generateLParallel(int start, int loop, vector<vector<int>> &ret);
+	void generateCSet(int start, int loop, set<vector<int>> &Lset);
 	void parallelFrequent(int start, int loop);
 public:
 	AprioriRule(vector<vector<int>> _transactions, vector<int>, int tPeerB, int Cores, long double _minSp, long double _minConfi = 0.0);

@@ -61,16 +61,16 @@ void AprioriRule::Process()
 	}
 	printf("Start check frequent Itemset %f\n", clock() - startTime);
 	int fSize = frequentItemsets.size();
+	int *peers = new int[defineCores+1];
 	int peer = fSize / (defineCores);
-	thread *mThread = new thread[defineCores];
-	for (int i = 0; i < defineCores; i++) {
-		mThread[i] = thread(&AprioriRule::parallelFrequent, this, i*peer, peer);
-	}
+	for (int i =0 ; i < defineCores; i++) peers[i] = peer;
 	int mod = fSize % (defineCores);
-	if (mod != 0) {
-		parallelFrequent((defineCores)*peer, mod);
+	peers[defineCores] = ((mod == 0)? 0 : mod);
+	thread *mThread = new thread[defineCores+1];
+	for (int i = 0; i <= defineCores; i++) {
+		mThread[i] = thread(&AprioriRule::parallelFrequent, this, i*peer, peers[i]);
 	}
-	for (int i = 0; i < defineCores; i++) {
+	for (int i = 0; i <= defineCores; i++) {
 		mThread[i].join();
 	}
 }
@@ -152,20 +152,24 @@ void AprioriRule::generateCParallel2(int start, int loop, set<vector<int>> LSet,
 		}
 	}
 }
+
 vector<vector<int>> AprioriRule::generateNextC() {
 	printf("---Generate C:\t%f \t->", clock() - startTime);
 	vector<vector<int>> temp;
 	int Lsize = L.size();
-	int peer = Lsize / (defineCores);
-	thread *mThread = new thread[defineCores];
-	for (int i = 0; i < defineCores; i++) {
-		mThread[i] = thread(&AprioriRule::generateCParallel1, this, i*peer, peer, Lsize, ref(temp));
+	int *peers = new int[defineCores+1];
+	int peer = Lsize/defineCores;
+	for (int i = 0; i < defineCores; i++){
+		peers[i] = peer;
 	}
-	int mod = Lsize % (defineCores);
-	if (mod != 0) {
-		generateCParallel1((defineCores)*peer, mod, Lsize, ref(temp));
+	int mod = Lsize%defineCores;
+	peers[defineCores] =   ((mod != 0) ? mod : 0);
+
+	thread *mThread = new thread[defineCores+1];
+	for (int i = 0; i <= defineCores; i++) {
+		mThread[i] = thread(&AprioriRule::generateCParallel1, this, i*peer, peers[i], Lsize, ref(temp));
 	}
-	for (int i = 0; i < defineCores; i++) {
+	for (int i = 0; i <= defineCores; i++) {
 		mThread[i].join();
 	}
 	vector<vector<int>> temps;
@@ -175,30 +179,53 @@ vector<vector<int>> AprioriRule::generateNextC() {
 
 	int Tsize = temp.size();
 	peer = Tsize / (defineCores);
-	
-	for (int i = 0; i < defineCores; i++) {
-		mThread[i] = thread(&AprioriRule::generateCParallel2, this,i*peer,peer, LSet, ref(temps), temp);
+	for (int i = 0; i < defineCores; i++){
+		peers[i] = peer;
 	}
 	mod = Tsize % (defineCores);
-	if (mod != 0) {
-		generateCParallel2((defineCores)*peer, mod, LSet, ref(temps), temp);
+	peers[defineCores] =   ((mod != 0) ? mod : 0);
+	for (int i = 0; i <= defineCores; i++) {
+		mThread[i] = thread(&AprioriRule::generateCParallel2, this,i*peer,peers[i], LSet, ref(temps), temp);
 	}
-	for (int i = 0; i < defineCores; i++) {
+	for (int i = 0; i <= defineCores; i++) {
 		mThread[i].join();
 	}
 	printf("%f\n", clock() - startTime);
+	delete peers; peers = NULL;
 	return temps;
 }
 vector<vector<int>> AprioriRule::generateNewL() {
 	printf("---Generate L: %f \t ->", clock() - startTime);
 	vector<vector<int>> ret;
-	for (auto&row : C) {
-		long double sp = getSupport(getIndex(row));
-		if (sp < minSuport) continue;
-		ret.push_back(row);
+	int Csize = C.size();
+	int *peers = new int[defineCores];
+	int peer = Csize/defineCores;
+	for (int i = 0; i < defineCores; i++){
+		peers[i] = peer;
+	}
+	int mod = Csize%defineCores;
+	peers[defineCores] = ((mod != 0) ? mod: 0);
+	thread *mThread = new thread[defineCores+1];
+	for (int i = 0; i <= defineCores; i++){
+		mThread[i] = thread(&AprioriRule::generateLParallel,this,i*peer,peers[i], ref(ret));
+	}
+	for (int i = 0; i <= defineCores; i++){
+		mThread[i].join();
 	}
 	printf("%f\n", clock() - startTime);
+	delete peers; peers = NULL;
 	return ret;
+}
+
+void AprioriRule::generateLParallel(int start,int loop, vector<vector<int>> &ret){
+	loop = start + loop;
+	for (int  i = start; i < loop; i ++){
+		long double sp = getSupport(getIndex(C[i]));
+		if (sp < minSuport) continue;
+		Block.lock();
+		ret.push_back(C[i]);
+		Block.unlock();
+	}
 }
 
 vector<int> AprioriRule::getIndex(vector<int> row) {
@@ -224,12 +251,7 @@ __global__ void ItemSupport(int *count_, int* _transactions_, int* item, int ite
 			break;
 		}
 	}
-	if (boo) {
-		count_[index] = 1;
-	}
-	else {
-		count_[index] = 0;
-	}
+	count_[index] = (boo ? 1: 0);
 }
 
 long double AprioriRule::getSupport(vector<int> item) {

@@ -53,6 +53,7 @@ void AprioriRule::Process()
 			generateAssociationRule(items, {}, {}, 0, minConfin);
 		}
 	}
+	printf("Frequent Itemset Done. Start write output %f\n", clock() - startTime);
 }
 
 void AprioriRule::generateAssociationRule(vector<int> items, vector<int> X, vector<int> Y, int index, long double minConfi) {
