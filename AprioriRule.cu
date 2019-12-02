@@ -51,6 +51,7 @@ void AprioriRule::Process()
 	while (true)
 	{
 		printf("--Step %d -> %f\n", Step, clock() - startTime);
+		printf("%d\t%d\n",C.size(),L.size());
 		C = generateNextC();
 		if (C.size() == 0)
 			break;
@@ -73,6 +74,7 @@ void AprioriRule::Process()
 	for (int i = 0; i <= defineCores; i++) {
 		mThread[i].join();
 	}
+	printf("Start Write output %f\n", clock() - startTime);
 }
 
 void AprioriRule::parallelFrequent(int start, int loop)
@@ -97,8 +99,11 @@ void AprioriRule::generateAssociationRule(vector<int> items, vector<int> X, vect
 
 		long double support = (long double)XYsupport;
 		long double confidence = (long double)XYsupport / Xsupport * 100.0;
-		if (confidence >= minConfi)
+		if (confidence >= minConfi){
+			Block.lock();
 			AprioriRules.push_back({ X, Y, support, confidence });
+			Block.unlock();
+		}
 		return;
 	}
 
@@ -198,11 +203,11 @@ vector<vector<int>> AprioriRule::generateNewL() {
 	printf("---Generate L: %f \t ->", clock() - startTime);
 	vector<vector<int>> ret;
 	int Csize = C.size();
-	int *peers = new int[defineCores];
+	int *peers = new int[defineCores+1];
 	int peer = Csize/defineCores;
 	for (int i = 0; i < defineCores; i++){
 		peers[i] = peer;
-	}
+	}	
 	int mod = Csize%defineCores;
 	peers[defineCores] = ((mod != 0) ? mod: 0);
 	thread *mThread = new thread[defineCores+1];
@@ -212,8 +217,8 @@ vector<vector<int>> AprioriRule::generateNewL() {
 	for (int i = 0; i <= defineCores; i++){
 		mThread[i].join();
 	}
-	printf("%f\n", clock() - startTime);
 	delete peers; peers = NULL;
+	printf("%f\n", clock() - startTime);
 	return ret;
 }
 
@@ -257,8 +262,10 @@ __global__ void ItemSupport(int *count_, int* _transactions_, int* item, int ite
 long double AprioriRule::getSupport(vector<int> item) {
 	int count = 0;
 	int *item_, itemSize = item.size();
+	Block.lock();
 	cudaMalloc(&item_, sizeof(int)*itemSize);
 	cudaMemcpy(item_, item.data(), sizeof(int)*itemSize, cudaMemcpyHostToDevice);
+	Block.unlock();
 	if (tranSize < defineThread) {
 		ItemSupport << <1, tranSize >> > (_lCount_, _transactions_, item_, itemSize, peerSize);
 	}

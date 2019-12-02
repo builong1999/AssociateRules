@@ -1,9 +1,9 @@
 
 const fs = require('fs');
 
-path = "input.txt"
-const NumProduct = 10;
-const transaction = 1E2;
+path = "input5.txt"
+const NumProduct = 500;
+const transaction = 1E4;
 var listProduct = []
 const t = [];
 
