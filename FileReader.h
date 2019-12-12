@@ -7,12 +7,12 @@ using namespace std;
 class FileReader {
 private:
 	ifstream fileInput;
-	vector<vector<int>>transactions;
+	vector<int>transactions;
 	vector<int>Product;
 	void GetTransaction();
 public:
 	FileReader(string filename);
-	vector<vector<int>> GetTransactions();
+	vector<int> GetTransactions();
 	vector<int> getProduct();
 };
 

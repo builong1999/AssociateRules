@@ -43,7 +43,7 @@ private:
 	void generateCSet(int start, int loop, set<vector<int>> &Lset);
 	void parallelFrequent(int start, int loop);
 public:
-	AprioriRule(vector<vector<int>> _transactions, vector<int>, int tPeerB, int Cores, long double _minSp, long double _minConfi = 0.0);
+	AprioriRule(vector<int> _transactions, vector<int>, int tPeerB, int Cores, long double _minSp, long double _minConfi = 0.0);
 	vector<tuple<vector<int>, vector<int>, long double, long double>> getResult();
 	void Process();
 	~AprioriRule();

@@ -5,9 +5,8 @@ AprioriRule::~AprioriRule() {
 	cudaFree(_transactions_);
 	cudaFree(_lCount_);
 }
-AprioriRule::AprioriRule(vector<vector<int>> _transactions, vector<int> _product, int tPeerB, int Cores, long double _minSp, long double _minConfi)
+AprioriRule::AprioriRule(vector<int> _transactions, vector<int> _product, int tPeerB, int Cores, long double _minSp, long double _minConfi)
 {
-	startTime = clock();
 	Step = 0;
 	minSuport = _minSp;
 	minConfin = _minConfi;
@@ -16,25 +15,26 @@ AprioriRule::AprioriRule(vector<vector<int>> _transactions, vector<int> _product
 	defineCores = Cores -1;
 	peerSize = _product.size();
 	frequentItemsets.push_back({ {} });
-	tranSize = _transactions.size();
+	tranSize = _transactions.size()/peerSize;
 
-	int *tempTrans = new int[peerSize*tranSize];
+	// int *tempTrans = new int[peerSize*tranSize];
 	_countC = new int[tranSize];
-	for (int i = 0; i < tranSize; i++) {
-		// Parallel here
-		_countC[i] = 0;
-		for (int j = 0; j < peerSize; j++) {
-			tempTrans[i*peerSize + j] = _transactions[i][j];
-		}
-	}
+	// for (int i = 0; i < tranSize; i++) {
+	// 	// Parallel here
+	// 	_countC[i] = 0;
+	// 	for (int j = 0; j < peerSize; j++) {
+	// 		tempTrans[i*peerSize + j] = _transactions[i][j];
+	// 	}
+	// }
 	cudaMalloc(&_transactions_, sizeof(int)*(peerSize*tranSize));
 	cudaMalloc(&_lCount_, sizeof(int)*tranSize);
-	cudaMemcpy(_transactions_, tempTrans, sizeof(int)*(peerSize*tranSize), cudaMemcpyHostToDevice);
+	cudaMemcpy(_transactions_, _transactions.data(), sizeof(int)*(peerSize*tranSize), cudaMemcpyHostToDevice);
 	cudaMemcpy(_lCount_, _countC, sizeof(int)*(tranSize), cudaMemcpyHostToDevice);
 
+	_transactions.clear();
 	printf("%f\tLoad Data\n", clock() - startTime);
 
-	delete tempTrans; tempTrans = NULL;
+	// delete tempTrans; tempTrans = NULL;
 }
 vector<tuple<vector<int>, vector<int>, long double, long double>> AprioriRule::getResult()
 {
@@ -51,10 +51,10 @@ void AprioriRule::Process()
 	while (true)
 	{
 		printf("--Step %d -> %f\n", Step, clock() - startTime);
-		printf("%d\t%d\n",C.size(),L.size());
 		C = generateNextC();
 		if (C.size() == 0)
 			break;
+		printf("%d\t%d\n",C.size(),L.size());
 		Step++;
 		L = generateNewL();
 
@@ -270,6 +270,7 @@ long double AprioriRule::getSupport(vector<int> item) {
 		ItemSupport << <1, tranSize >> > (_lCount_, _transactions_, item_, itemSize, peerSize);
 	}
 	else {
+		// <<< Blocks , Threads >>>
 		ItemSupport << <tranSize / defineThread, defineThread >> > (_lCount_, _transactions_, item_, itemSize, peerSize);
 	}
 	cudaFree(item_);

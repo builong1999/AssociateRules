@@ -53,7 +53,7 @@ void AprioriRule::Process()
 			generateAssociationRule(items, {}, {}, 0, minConfin);
 		}
 	}
-	printf("Frequent Itemset Done. Start write output %f\n", clock() - startTime);
+	printf("Start Write output %f\n", clock() - startTime);
 }
 
 void AprioriRule::generateAssociationRule(vector<int> items, vector<int> X, vector<int> Y, int index, long double minConfi) {
@@ -149,7 +149,6 @@ vector<int> AprioriRule::getIndex(vector<int> row) {
 
 long double AprioriRule::getSupport(vector<int> item) {
 	int count = 0;
-
 	bool boo;
 	for (auto&row : transactions) {
 		boo = true;
@@ -163,6 +162,5 @@ long double AprioriRule::getSupport(vector<int> item) {
 			count++;
 		}
 	}
-
 	return (long double)count / tranSize * 100;
 }

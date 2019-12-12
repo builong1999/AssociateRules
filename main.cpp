@@ -17,9 +17,10 @@ int main(int arg, char**argv)
 	double numCores = atof(argv[5]);
 	string output = "output.txt";
 	FileReader InputReader(input);
-	vector<vector<int>> transactions = InputReader.GetTransactions();
+	vector<int> transactions = InputReader.GetTransactions();
 	vector<int> _product = InputReader.getProduct();
 	AprioriRule aprioriRules(transactions,_product, numThreadPeerblock, numCores, spThreshold, cfThreshold);
+	printf("Start analyst\n", clock()-startTime);
 	aprioriRules.Process();
 	printf("%f\tEnd Execute\n", clock() - startTime);
 	OutputWritter _Output(output, aprioriRules.getResult());
